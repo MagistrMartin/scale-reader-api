@@ -1,35 +1,30 @@
+# pip install flask pyserial
+from flask import Flask, jsonify
 import re
 import serial
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
 
 PORT = "COM5"
 BAUDRATE = 9600
 
-ser = None
+ser = serial.Serial(PORT, BAUDRATE, timeout=0)
+ser.close()
 
+app = Flask(__name__)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global ser
-    ser = serial.Serial(PORT, BAUDRATE, timeout=0)
-    yield
-    ser.close()
-
-
-app = FastAPI(lifespan=lifespan)
-
-
-@app.get("/current-weight")
+@app.route("/weight")
 def get_current_weight():
     buffer = ""
+    ser.open()
     while ser.in_waiting:
         buffer += ser.read(ser.in_waiting).decode(errors="ignore")
+    ser.close()
 
     for line in buffer.splitlines():
         match = re.search(r"Weight:\s*([-+]?\d+\.\d+)\s*kg", line, re.IGNORECASE)
         if match:
-            return {"current-weight": float(match.group(1))}
+            return jsonify({"current-weight": float(match.group(1))})
 
-    return {"current-weight": None}
+    return jsonify({"current-weight": None})
 
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
