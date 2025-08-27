@@ -3,7 +3,7 @@ from flask import Flask, jsonify, abort
 import re
 import serial
 
-PORT = "COM5"
+PORT = "COM3"
 BAUDRATE = 9600
 
 ser = serial.Serial(PORT, BAUDRATE, timeout=1)   # open once, keep open
