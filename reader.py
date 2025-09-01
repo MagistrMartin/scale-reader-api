@@ -4,8 +4,10 @@ from flask_cors import CORS
 import re
 import serial
 import sys
-import os
 import subprocess
+import requests
+import socket
+from zebrafy import ZebrafyPDF
 
 PORT = "COM3"
 BAUDRATE = 9600
@@ -41,6 +43,36 @@ def pull_recent_changes():
     result = subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
     
 #   return jsonify({'stdout': result.stdout, 'stderr':result.stderr, 'returncode': result.returncode})
+
+@app.route("/print-packeta", methods=['POST'])
+def print_packeta():
+    order_id = request.args.get('orderId', type=int)
+    if not order_id:
+        return jsonify({"error": "orderId query param missing"}), 400
+
+    import base64
+    # 1. fetch PDF
+    url = f"https://api.magistrmartin.cz/orders/packeta/printLabel?orderId={order_id}"
+    try:
+        pdf = requests.get(url, timeout=10).content
+    except Exception as e:
+        return jsonify({"error": f"download failed: {e}"}), 502
+
+    if not pdf:
+        return jsonify({"error": f"empty file: {e}"}), 502
+    # 2. printer address (optional override in JSON body)
+    host = "192.168.1.106"
+    port = 9100
+
+    # 3. send to printer
+
+    try:
+        with socket.create_connection((host, port), timeout=5) as s:
+            s.sendall(ZebrafyPDF(base64.b64decode(pdf)).to_zpl())
+            s.close()
+        return jsonify({"status": "sent"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/weight")
 def get_current_weight():
