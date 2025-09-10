@@ -50,25 +50,30 @@ def pull_recent_changes():
 
 @app.route("/weight")
 def get_current_weight():
-    buffer = ""
-    buffer += ser.read(ser.in_waiting).decode()
-    current_weight = 0
+    try:
+        buffer = ""
+        buffer += ser.read(ser.in_waiting).decode()
+        current_weight = 0
 
-    if buffer:
-        line = buffer.splitlines()[len(buffer.splitlines()) - 1]
-        printOut(f"Line: {line}")
-        match = re.search(r"Weight:\s*([-+]?\d+\.\d+)\s*kg", line, re.IGNORECASE)
-        if match:
-            current_weight = match.group(1)
+        if buffer:
+            line = buffer.splitlines()[len(buffer.splitlines()) - 1]
+            match = re.search(r"Weight:\s*([-+]?\d+\.\d+)\s*kg", line, re.IGNORECASE)
+            if match:
+                current_weight = match.group(1)
 
-    current_weight = int(float(current_weight)* 1000) 
-    return jsonify({"current-weight": current_weight}) 
+        current_weight = int(float(current_weight)* 1000) 
+        return jsonify({"current-weight": current_weight}), 200
+    except Exception as e:
+        log("Error in getting weight: " + e)
+        return jsonify({"error": f"Error printing: {e}"}), 502
 
 if __name__ == "__main__":
     pull_recent_changes()
     ser = establish_connection()
     if ser is None:
         log("Failed to establish connection")
+    else:
+        log(f"Connection successfull to port {ser.port}")
     try:
         app.run(host="0.0.0.0", port=5000)
     finally:
