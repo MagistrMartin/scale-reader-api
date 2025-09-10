@@ -8,10 +8,19 @@ import requests
 app = Flask(__name__)
 CORS(app)
 
+def log(text):
+    with open("logs.txt", "a") as file:
+        file.write(str(datetime.datetime.now()) + ":" + text)
+
 #@app.route("/git")
 def pull_recent_changes():
+    cmd = ['git','restore', '--staged', '.']
+    subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
+    cmd = ['git', 'restore', '.']
+    subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
     cmd = ['git', 'pull']
     result = subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
+    log(result.stdout + result.stderr)
     
 #   return jsonify({'stdout': result.stdout, 'stderr':result.stderr, 'returncode': result.returncode})
 
