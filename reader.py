@@ -54,6 +54,10 @@ def get_current_weight():
         buffer = ""
         buffer += ser.read(ser.in_waiting).decode()
         current_weight = 0
+        
+        if not buffer:
+            # Empty buffer comes back as 204
+            return jsonify({}), 204 
 
         if buffer:
             line = buffer.splitlines()[len(buffer.splitlines()) - 1]
