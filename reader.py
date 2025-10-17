@@ -36,7 +36,6 @@ def establish_connection():
     return None
 
 
-@app.route("/git")
 def pull_recent_changes():
     cmd = ['git','restore', '--staged', '.']
     result = subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
@@ -50,7 +49,6 @@ def pull_recent_changes():
     cmd = ['pip', 'install', '-r', 'requirements.txt']
     result = subprocess.run(cmd,  capture_output=True, text=True, timeout=100)
     log(result.stdout + result.stderr)
-    return jsonify({'stdout': result.stdout, 'stderr':result.stderr, 'returncode': result.returncode})
 
 @app.route("/weight")
 def get_current_weight():
