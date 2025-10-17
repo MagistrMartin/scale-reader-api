@@ -1,12 +1,12 @@
 # pip install flask pyserial
 import asyncio
-import random
-from flask import Flask, jsonify, render_template
-from flask_cors import CORS
-import re
-import serial
-import subprocess
 import datetime
+import re
+import subprocess
+
+import serial
+from flask import Flask, jsonify
+from flask_cors import CORS
 from flask_socketio import SocketIO
 
 BAUDRATE = 9600
@@ -18,7 +18,7 @@ sio  = SocketIO(app, cors_allowed_origins="*", async_mode="threading")  # or "ev
 def log(msg):
     with open("logs.txt", "a", encoding="utf-8") as f:
         f.write(f"{datetime.datetime.now()} : {msg}\n")
-   # open once, keep open
+
 def establish_connection():
     ports = ["COM1", "COM2", "COM3", "COM4", "COM5"]
     ser = serial.Serial()
@@ -36,16 +36,19 @@ def establish_connection():
     return None
 
 
-
-
 @app.route("/git")
 def pull_recent_changes():
     cmd = ['git','restore', '--staged', '.']
-    subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
-    cmd = ['git', 'restore', '.']
-    subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
-    cmd = ['git', 'pull']
     result = subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
+    log(result.stdout + result.stderr)
+    cmd = ['git', 'restore', '.']
+    result = subprocess.run(cmd,  capture_output=True, text=True, timeout=10)
+    log(result.stdout + result.stderr)
+    cmd = ['git', 'pull']
+    result = subprocess.run(cmd,  capture_output=True, text=True, timeout=100)
+    log(result.stdout + result.stderr)
+    cmd = ['pip', 'install', '-r', 'requirements.txt']
+    result = subprocess.run(cmd,  capture_output=True, text=True, timeout=100)
     log(result.stdout + result.stderr)
     return jsonify({'stdout': result.stdout, 'stderr':result.stderr, 'returncode': result.returncode})
 
@@ -101,8 +104,8 @@ async def scale_emitter():
                 current_weight = match.group(1)
 
         current_weight = int(float(current_weight)* 1000)
-        await asyncio.sleep(0.3)
         sio.emit("scale_reading", {"weight": current_weight})  # broadcast to everyone
+        await asyncio.sleep(0.3)
         # val = random.randint(0, 100)
         # print(val)
         # sio.emit("scale_reading", {"weight": val})  # broadcast to everyone
@@ -112,7 +115,7 @@ def _loop():
 
 
 if __name__ == "__main__":
-    # pull_recent_changes()
+    pull_recent_changes()
     ser = establish_connection()
     if ser is None:
         log("Failed to establish connection")
